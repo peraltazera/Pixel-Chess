@@ -4,23 +4,14 @@ using UnityEngine;
 
 public class Piece : MonoBehaviour
 {
+    [Header("Components")]
+    public GameObject obj;
+    public SpriteRenderer sprite;
     [SerializeField]
-    GameObject obj;
-    [SerializeField]
-    SpriteRenderer sprite;
-    [SerializeField]
-    public int x;
-    [SerializeField]
-    public int y;
-    [SerializeField]
+    private Manager manager;
+    [Header("Config")]
     public int xInitial;
-    [SerializeField]
     public int yInitial;
-    [SerializeField]
-    Manager manager;
-    [SerializeField]
-    bool white;
-    bool diagonal = false;
     public enum typePiece
     {
         Pawn,
@@ -31,7 +22,12 @@ public class Piece : MonoBehaviour
         King
     }
     public typePiece type;
+    public bool white;
+    [Header("Stats")]
+    public int x;
+    public int y;
     public bool move = false;
+    private bool diagonal = false;
 
     void Start () {
         manager.tiles[y,x].pieceSprite = sprite;
@@ -70,26 +66,10 @@ public class Piece : MonoBehaviour
     }
 
     public void Rook () {
-        for(int i = 1; i < 8; i++){
-            bool loop = EnableTile(y+i,x);
-            if(!loop)
-                break;
-        }
-        for(int i = 1; i < 8; i++){
-            bool loop = EnableTile(y-i,x);
-            if(!loop)
-                break;
-        }
-        for(int i = 1; i < 8; i++){
-            bool loop = EnableTile(y,x+i);
-            if(!loop)
-                break;
-        }
-        for(int i = 1; i < 8; i++){
-            bool loop = EnableTile(y,x-i);
-            if(!loop)
-                break;
-        }
+        LoopTile(true,false,false,false);
+        LoopTile(false,true,false,false);
+        LoopTile(false,false,true,false);
+        LoopTile(false,false,false,true);
     }
 
     public void Knight () {
@@ -97,29 +77,17 @@ public class Piece : MonoBehaviour
         EnableTile(y+2,x-1);
         EnableTile(y-2,x+1);
         EnableTile(y-2,x-1);
+        EnableTile(y+1,x+2);
+        EnableTile(y+1,x-2);
+        EnableTile(y-1,x+2);
+        EnableTile(y-1,x-2);
     }
 
     public void Bishop () {
-        for(int i = 1; i < 8; i++){
-            bool loop = EnableTile(y+i,x+i);
-            if(!loop)
-                break;
-        }
-        for(int i = 1; i < 8; i++){
-            bool loop = EnableTile(y-i,x-i);
-            if(!loop)
-                break;
-        }
-        for(int i = 1; i < 8; i++){
-            bool loop = EnableTile(y-i,x+i);
-            if(!loop)
-                break;
-        }
-        for(int i = 1; i < 8; i++){
-            bool loop = EnableTile(y+i,x-i);
-            if(!loop)
-                break;
-        }
+        LoopTile(true,false,true,false);
+        LoopTile(false,true,false,true);
+        LoopTile(false,true,true,false);
+        LoopTile(true,false,false,true);
     }
 
     public void Queen () {
@@ -128,7 +96,6 @@ public class Piece : MonoBehaviour
     }
 
     public void King () {
-
         EnableTile(y+1,x);
         EnableTile(y-1,x);
         EnableTile(y,x+1);
@@ -137,6 +104,53 @@ public class Piece : MonoBehaviour
         EnableTile(y-1,x-1);
         EnableTile(y+1,x-1);
         EnableTile(y-1,x+1);
+        if(!move){
+            if(manager.tiles[y,x+1].pieceSprite == null && manager.tiles[y,x+2].pieceSprite == null && manager.tiles[y,x+3].piece != null){
+                if(manager.tiles[y,x+3].piece.type == Piece.typePiece.Rook && !manager.tiles[y,x+3].piece.move){
+                    Tile(y,x+3);
+                    manager.theRook = true;
+                }
+            }
+            if(manager.tiles[y,x-1].pieceSprite == null && manager.tiles[y,x-2].pieceSprite == null && manager.tiles[y,x-3].pieceSprite == null && manager.tiles[y,x-4].piece != null){
+                if(manager.tiles[y,x-4].piece.type == Piece.typePiece.Rook && !manager.tiles[y,x+3].piece.move){
+                    Tile(y,x-4);
+                    manager.theRook = true;
+                } 
+            }
+        }
+    }
+
+    void LoopTile(bool yPos, bool yNeg, bool xPos, bool xNeg){
+        int yLocal = 0;
+        int xLocal = 0;
+        for(int i = 1; i < 8; i++){
+            if(xPos){
+                xLocal = x + i;
+            }
+            else if(xNeg){
+                xLocal = x - i;
+            }else{
+                xLocal = x;
+            }
+            if(yPos){
+                yLocal = y + i;
+            }
+            else if(yNeg){
+                yLocal = y - i;
+            }else{
+                yLocal = y;
+            }
+            bool loop = EnableTile(yLocal,xLocal);
+            if(!loop)
+                break;
+        }
+    }
+
+    void Tile(int y, int x){
+        manager.tiles[y,x].center.enabled = true;
+        manager.tiles[y,x].center.color = manager.tileEnebled;
+        manager.tiles[y,x].enabled = true;
+        manager.enabledTiles.Add(manager.tiles[y,x]);
     }
 
     void TilePawn(int y, int x){
@@ -152,10 +166,7 @@ public class Piece : MonoBehaviour
         if(y >= 0 && y <=7 && x >= 0 && x <=7){
             if(manager.tiles[y,x].pieceSprite == null || manager.tiles[y,x].pieceSprite != null && manager.turnWhite != manager.tiles[y,x].white && type != typePiece.Pawn || diagonal){
                 diagonal = false;
-                manager.tiles[y,x].center.enabled = true;
-                manager.tiles[y,x].center.color = manager.tileEnebled;
-                manager.tiles[y,x].enabled = true;
-                manager.enabledTiles.Add(manager.tiles[y,x]);
+                Tile(y,x);
                 if(manager.tiles[y,x].pieceSprite != null){
                     manager.tiles[y,x].center.color = manager.tileEnemy;
                     return false;

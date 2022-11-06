@@ -4,25 +4,23 @@ using UnityEngine;
 
 public class Tile : MonoBehaviour
 {
-    [SerializeField]
-    int y;
-    [SerializeField]
-    int x;
-    [SerializeField]
+    [Header("Components")]
     public SpriteRenderer center;
-    [SerializeField]
     public SpriteRenderer left;
-    [SerializeField]
     public SpriteRenderer right;
-    [SerializeField]
     public SpriteRenderer top;
-    [SerializeField]
     public SpriteRenderer bottom;
+    [SerializeField]
+    private Manager manager;
     public SpriteRenderer pieceSprite;
     public Transform piecePosition;
     public Piece piece;
+    [Header("Config")]
     [SerializeField]
-    Manager manager;
+    private int y;
+    [SerializeField]
+    private int x;
+    [Header("Stats")]
     public bool white;
     public bool enabled = false;
     public bool anim = false;
@@ -47,18 +45,14 @@ public class Tile : MonoBehaviour
         if(pieceSprite != null){
             if(manager.turnWhite && white || !manager.turnWhite && !white){
                 if(!anim){
-                    manager.sound.clip = manager.select;
-                    manager.sound.volume = 0.5f;
-                    manager.sound.Play();
+                    manager.SetEfects(0.5f, manager.select);
                     center.enabled = true;
                     piecePosition.position = new Vector2(manager.tiles[piece.y,piece.x].gameObject.transform.position.x, manager.tiles[piece.y,piece.x].gameObject.transform.position.y + 0.73f);
                     piecePosition.position = new Vector2(piecePosition.position.x, piecePosition.position.y + 0.2f);
                     anim = true;
                 }
                 if (Input.GetMouseButtonDown(0)){
-                    manager.sound.clip = manager.check;
-                    manager.sound.volume = 0.8f;
-                    manager.sound.Play();
+                    manager.SetEfects(0.8f, manager.check);
                     manager.tileSelect = this;
                     manager.Clear();
                     switch(piece.type)
@@ -70,7 +64,31 @@ public class Tile : MonoBehaviour
                         }
                         case Piece.typePiece.Rook:
                         {
-                            piece.Rook();
+                            if(manager.theRook){
+                                if(white){
+                                    if(piece.x > manager.whitePieces[12].x){
+                                        MovePiece(manager.tiles[piece.y,manager.whitePieces[12].x+1], manager.tiles[piece.y,piece.x]);
+                                        MovePiece(manager.tiles[manager.whitePieces[12].y,manager.whitePieces[12].x+2], manager.tiles[manager.whitePieces[12].y,manager.whitePieces[12].x]);
+                                        manager.ChangeTurn();
+                                    }else{
+                                        MovePiece(manager.tiles[piece.y,manager.whitePieces[12].x-1], manager.tiles[piece.y,piece.x]);
+                                        MovePiece(manager.tiles[manager.whitePieces[12].y,manager.whitePieces[12].x-2], manager.tiles[manager.whitePieces[12].y,manager.whitePieces[12].x]);
+                                        manager.ChangeTurn();
+                                    }
+                                }else{
+                                    if(piece.x > manager.blackPieces[12].x){
+                                        MovePiece(manager.tiles[piece.y,manager.blackPieces[12].x+1], manager.tiles[piece.y,piece.x]);
+                                        MovePiece(manager.tiles[manager.blackPieces[12].y,manager.blackPieces[12].x+2], manager.tiles[manager.blackPieces[12].y,manager.blackPieces[12].x]);
+                                        manager.ChangeTurn();
+                                    }else{
+                                        MovePiece(manager.tiles[piece.y,manager.blackPieces[12].x-1], manager.tiles[piece.y,piece.x]);
+                                        MovePiece(manager.tiles[manager.blackPieces[12].y,manager.blackPieces[12].x-2], manager.tiles[manager.blackPieces[12].y,manager.blackPieces[12].x]);
+                                        manager.ChangeTurn();
+                                    }
+                                }
+                            }else{
+                                piece.Rook();
+                            }
                             break;
                         }
                         case Piece.typePiece.Knight:
@@ -98,68 +116,58 @@ public class Tile : MonoBehaviour
                 }
             }else if(enabled){
                 if (Input.GetMouseButtonDown(0)){
-                    manager.sound.clip = manager.capture;
-                    manager.sound.volume = 1f;
-                    manager.sound.Play();
+                    manager.SetEfects(1f, manager.capture);
                     piece.gameObject.SetActive(false);
-                    white = manager.tileSelect.white;
-                    pieceSprite = manager.tileSelect.pieceSprite;
-                    piecePosition = manager.tileSelect.piecePosition;
-                    piece = manager.tileSelect.piece;
-                    manager.tileSelect.piecePosition = null;
-                    manager.tileSelect.piece = null;
-                    manager.tileSelect.pieceSprite = null;
-                    manager.tileSelect.white = false;
-                    piece.move = true;
-                    piece.x = x;
-                    piece.y = y;
-                    pieceSprite.sortingOrder = 8-y;
-                    piecePosition.position = new Vector2(manager.tiles[piece.y,piece.x].gameObject.transform.position.x, manager.tiles[piece.y,piece.x].gameObject.transform.position.y + 0.73f);
-                    manager.turnWhite = !manager.turnWhite;
-                    if(manager.turnWhite){
-                        manager.cam.backgroundColor = manager.white;
+                    if(piece.type == Piece.typePiece.King){
+                        if(piece.white){
+                            Debug.Log("Black Wins");
+                        }else{
+                            Debug.Log("White Wins");
+                        }
+                        manager.Clear();
+                        manager.theRook = false;
+                        manager.PieceInitial();
                     }else{
-                        manager.cam.backgroundColor = manager.black;
+                        MovePiece(this, manager.tileSelect);
+                        manager.ChangeTurn();
                     }
-                    manager.Clear();
                 }
             }else{
                 if (Input.GetMouseButtonDown(0)){
                     manager.Clear();
+                    manager.theRook = false;
                 }
             }
         }else if(enabled){
             if (Input.GetMouseButtonDown(0)){
-                manager.sound.clip = manager.move;
-                manager.sound.volume = 1f;
-                manager.sound.Play();
-                white = manager.tileSelect.white;
-                pieceSprite = manager.tileSelect.pieceSprite;
-                piecePosition = manager.tileSelect.piecePosition;
-                piece = manager.tileSelect.piece;
-                manager.tileSelect.piecePosition = null;
-                manager.tileSelect.piece = null;
-                manager.tileSelect.pieceSprite = null;
-                manager.tileSelect.white = false;
-                piece.move = true;
-                piece.x = x;
-                piece.y = y;
-                pieceSprite.sortingOrder = 8-y;
-                piecePosition.position = new Vector2(manager.tiles[piece.y,piece.x].gameObject.transform.position.x, manager.tiles[piece.y,piece.x].gameObject.transform.position.y + 0.73f);
-                manager.turnWhite = !manager.turnWhite;
-                if(manager.turnWhite){
-                    manager.cam.backgroundColor = manager.white;
-                }else{
-                    manager.cam.backgroundColor = manager.black;
-                }
-                manager.Clear();
+                manager.SetEfects(1f, manager.move);
+                MovePiece(this, manager.tileSelect);
+                manager.ChangeTurn();
             }
         }else{
             if (Input.GetMouseButtonDown(0)){
                 manager.Clear();
+                manager.theRook = false;
             }
         }
     }
+
+    void MovePiece(Tile pos, Tile pre){
+        pos.white = pre.white;
+        pos.pieceSprite = pre.pieceSprite;
+        pos.piecePosition = pre.piecePosition;
+        pos.piece = pre.piece;
+        pre.piecePosition = null;
+        pre.piece = null;
+        pre.pieceSprite = null;
+        pre.white = false;
+        pos.piece.move = true;
+        pos.piece.x = pos.x;
+        pos.piece.y = pos.y;
+        pos.pieceSprite.sortingOrder = 8-y;
+        pos.piecePosition.position = new Vector2(manager.tiles[pos.piece.y,pos.piece.x].gameObject.transform.position.x, manager.tiles[pos.piece.y,pos.piece.x].gameObject.transform.position.y + 0.73f);
+    }
+    
 
     void OnMouseExit()
     {
